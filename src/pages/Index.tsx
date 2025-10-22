@@ -9,7 +9,8 @@ import CreateCharacterDialog from '@/components/CreateCharacterDialog';
 import CreatePostDialog from '@/components/CreatePostDialog';
 import LocationChat from '@/components/LocationChat';
 import CreateLocationDialog from '@/components/CreateLocationDialog';
-import { charactersApi, locationsApi, postsApi, DEFAULT_USER_ID } from '@/lib/api';
+import AuthDialog from '@/components/AuthDialog';
+import { charactersApi, locationsApi, postsApi, getCurrentUserId } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Index() {
@@ -24,10 +25,41 @@ export default function Index() {
   const [createLocationOpen, setCreateLocationOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    loadData();
+    checkAuth();
   }, []);
+
+  const checkAuth = () => {
+    const username = localStorage.getItem('username');
+    const userId = localStorage.getItem('userId');
+    
+    if (username && userId) {
+      setCurrentUser({ username, id: userId });
+      loadData();
+    } else {
+      setAuthOpen(true);
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = (user: any) => {
+    setCurrentUser(user);
+    loadData();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    setCurrentUser(null);
+    setCharacters([]);
+    setLocations([]);
+    setPosts([]);
+    setAuthOpen(true);
+  };
 
   const loadData = async () => {
     try {
@@ -122,10 +154,26 @@ export default function Index() {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8 animate-fade-in">
-          <h1 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            Nedin Roleplark
-          </h1>
-          <p className="text-muted-foreground text-lg">Фэнтези мир текстовых приключений</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                Nedin Roleplark
+              </h1>
+              <p className="text-muted-foreground text-lg">Фэнтези мир текстовых приключений</p>
+            </div>
+            {currentUser && (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="font-semibold">{currentUser.username}</div>
+                  <div className="text-sm text-muted-foreground">Игрок</div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <Icon name="LogOut" size={16} className="mr-2" />
+                  Выйти
+                </Button>
+              </div>
+            )}
+          </div>
         </header>
 
         <Tabs defaultValue="feed" className="space-y-6">
@@ -266,6 +314,12 @@ export default function Index() {
         open={createLocationOpen}
         onOpenChange={setCreateLocationOpen}
         onCreateLocation={handleCreateLocation}
+      />
+
+      <AuthDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        onAuthSuccess={handleAuthSuccess}
       />
     </div>
   );

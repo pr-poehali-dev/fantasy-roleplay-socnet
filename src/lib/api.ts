@@ -7,15 +7,20 @@ const ENDPOINTS = {
   messages: 'a33b453f-4350-4f0d-8032-244819775b9e',
 };
 
-const DEFAULT_USER_ID = 1;
+function getCurrentUserId(): number {
+  const userId = localStorage.getItem('userId');
+  return userId ? parseInt(userId) : 1;
+}
 
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE}/${endpoint}`;
+  const userId = getCurrentUserId();
+  
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Id': String(DEFAULT_USER_ID),
+      'X-User-Id': String(userId),
       ...options.headers,
     },
   });
@@ -43,7 +48,7 @@ export const charactersApi = {
   }) => apiRequest(ENDPOINTS.characters, {
     method: 'POST',
     body: JSON.stringify({
-      user_id: DEFAULT_USER_ID,
+      user_id: getCurrentUserId(),
       ...data,
     }),
   }),
@@ -59,7 +64,7 @@ export const locationsApi = {
   }) => apiRequest(ENDPOINTS.locations, {
     method: 'POST',
     body: JSON.stringify({
-      user_id: DEFAULT_USER_ID,
+      user_id: getCurrentUserId(),
       ...data,
     }),
   }),
@@ -92,4 +97,4 @@ export const messagesApi = {
   }),
 };
 
-export { DEFAULT_USER_ID };
+export { getCurrentUserId };
