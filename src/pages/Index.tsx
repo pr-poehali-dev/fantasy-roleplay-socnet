@@ -8,6 +8,7 @@ import PostCard from '@/components/PostCard';
 import CreateCharacterDialog from '@/components/CreateCharacterDialog';
 import CreatePostDialog from '@/components/CreatePostDialog';
 import LocationChat from '@/components/LocationChat';
+import CreateLocationDialog from '@/components/CreateLocationDialog';
 
 export default function Index() {
   const [characters, setCharacters] = useState([
@@ -78,6 +79,7 @@ export default function Index() {
 
   const [createCharacterOpen, setCreateCharacterOpen] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [createLocationOpen, setCreateLocationOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
 
@@ -87,6 +89,10 @@ export default function Index() {
 
   const handleCreatePost = (post: any) => {
     setPosts([post, ...posts]);
+  };
+
+  const handleCreateLocation = (location: any) => {
+    setLocations([...locations, location]);
   };
 
   const activeLocation = locations.find(l => l.id === activeLocationId);
@@ -185,6 +191,10 @@ export default function Index() {
           <TabsContent value="locations" className="space-y-4 animate-fade-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-semibold">Локации</h2>
+              <Button onClick={() => setCreateLocationOpen(true)} className="gap-2">
+                <Icon name="Plus" size={16} />
+                Создать локацию
+              </Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -239,6 +249,12 @@ export default function Index() {
         characters={characters}
         locations={locations}
         onCreatePost={handleCreatePost}
+      />
+
+      <CreateLocationDialog
+        open={createLocationOpen}
+        onOpenChange={setCreateLocationOpen}
+        onCreateLocation={handleCreateLocation}
       />
     </div>
   );
