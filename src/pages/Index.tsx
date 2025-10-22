@@ -7,6 +7,7 @@ import LocationCard from '@/components/LocationCard';
 import PostCard from '@/components/PostCard';
 import CreateCharacterDialog from '@/components/CreateCharacterDialog';
 import CreatePostDialog from '@/components/CreatePostDialog';
+import LocationChat from '@/components/LocationChat';
 
 export default function Index() {
   const [characters, setCharacters] = useState([
@@ -78,6 +79,7 @@ export default function Index() {
   const [createCharacterOpen, setCreateCharacterOpen] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
 
   const handleCreateCharacter = (character: any) => {
     setCharacters([...characters, character]);
@@ -86,6 +88,18 @@ export default function Index() {
   const handleCreatePost = (post: any) => {
     setPosts([post, ...posts]);
   };
+
+  const activeLocation = locations.find(l => l.id === activeLocationId);
+
+  if (activeLocation) {
+    return (
+      <LocationChat
+        location={activeLocation}
+        characters={characters}
+        onBack={() => setActiveLocationId(null)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
@@ -178,7 +192,7 @@ export default function Index() {
                 <LocationCard
                   key={location.id}
                   location={location}
-                  onClick={() => console.log('Open location chat', location.id)}
+                  onClick={() => setActiveLocationId(location.id)}
                 />
               ))}
             </div>
