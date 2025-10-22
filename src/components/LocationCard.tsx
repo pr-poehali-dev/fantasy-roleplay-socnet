@@ -7,7 +7,8 @@ interface Location {
   name: string;
   type: string;
   description: string;
-  messageCount: number;
+  messageCount?: number;
+  message_count?: number;
 }
 
 interface LocationCardProps {
@@ -36,7 +37,7 @@ export default function LocationCard({ location, onClick }: LocationCardProps) {
             </Badge>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Icon name="MessageCircle" size={14} />
-              {location.messageCount} сообщений
+              {location.message_count || location.messageCount || 0} сообщений
             </span>
           </div>
         </div>

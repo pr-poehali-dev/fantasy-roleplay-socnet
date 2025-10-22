@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { messagesApi } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Character {
   id: string;
@@ -39,45 +41,51 @@ interface LocationChatProps {
 }
 
 export default function LocationChat({ location, characters, onBack }: LocationChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      characterId: '1',
-      characterName: 'Эльдрих Лунный',
-      characterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eldritch',
-      content: 'Входит в таверну, стряхивая снег с плаща. Посох тихо светится в полумраке.',
-      timestamp: '10:32',
-    },
-    {
-      id: '2',
-      characterId: '2',
-      characterName: 'Торн Железный Молот',
-      characterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thorn',
-      content: '*Поднимает кружку эля в приветствии* Эльдрих! Рад тебя видеть, старина!',
-      timestamp: '10:35',
-    },
-  ]);
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [messageText, setMessageText] = useState('');
 
-  const handleSendMessage = () => {
+  useEffect(() => {
+    loadMessages();
+  }, [location.id]);
+
+  const loadMessages = async () => {
+    try {
+      const data = await messagesApi.getByLocation(parseInt(location.id));
+      const formattedMessages = data.map((msg: any) => ({
+        id: msg.id.toString(),
+        characterId: msg.character_id.toString(),
+        characterName: msg.character_name,
+        characterAvatar: msg.character_avatar,
+        content: msg.content,
+        timestamp: new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedCharacterId) return;
 
-    const character = characters.find(c => c.id === selectedCharacterId);
-    if (!character) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      characterId: character.id,
-      characterName: character.name,
-      characterAvatar: character.avatar,
-      content: messageText,
-      timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages([...messages, newMessage]);
-    setMessageText('');
+    try {
+      await messagesApi.create({
+        character_id: parseInt(selectedCharacterId),
+        location_id: parseInt(location.id),
+        content: messageText,
+      });
+      setMessageText('');
+      await loadMessages();
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение',
+        variant: 'destructive',
+      });
+    }
   };
 
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId);

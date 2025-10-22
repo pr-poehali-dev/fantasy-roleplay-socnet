@@ -47,20 +47,12 @@ export default function CreatePostDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const character = characters.find(c => c.id === selectedCharacterId);
-    const location = locations.find(l => l.id === selectedLocationId);
-    
-    if (!character || !location) return;
+    if (!selectedCharacterId || !selectedLocationId) return;
 
     onCreatePost({
-      id: Date.now().toString(),
-      characterName: character.name,
-      characterAvatar: character.avatar,
-      locationName: location.name,
+      characterId: selectedCharacterId,
+      locationId: selectedLocationId,
       content,
-      timestamp: 'Только что',
-      likes: 0,
-      comments: 0,
     });
 
     setContent('');

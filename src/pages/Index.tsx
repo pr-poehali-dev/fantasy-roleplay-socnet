@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -9,73 +9,15 @@ import CreateCharacterDialog from '@/components/CreateCharacterDialog';
 import CreatePostDialog from '@/components/CreatePostDialog';
 import LocationChat from '@/components/LocationChat';
 import CreateLocationDialog from '@/components/CreateLocationDialog';
+import { charactersApi, locationsApi, postsApi, DEFAULT_USER_ID } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Index() {
-  const [characters, setCharacters] = useState([
-    {
-      id: '1',
-      name: 'Эльдрих Лунный',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eldritch',
-      race: 'Эльф',
-      class: 'Маг',
-      description: 'Мудрый архимаг, хранитель древних знаний. Изучает забытые заклинания в башне Сапфирового ока.',
-    },
-    {
-      id: '2',
-      name: 'Торн Железный Молот',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thorn',
-      race: 'Дварф',
-      class: 'Воин',
-      description: 'Бесстрашный воин из клана Железных Гор. Ищет легендарный меч своего предка.',
-    },
-  ]);
-
-  const [locations, setLocations] = useState([
-    {
-      id: '1',
-      name: 'Таверна "Золотой дракон"',
-      type: 'Таверна',
-      description: 'Уютное место в центре города, где собираются искатели приключений за кружкой эля.',
-      messageCount: 42,
-    },
-    {
-      id: '2',
-      name: 'Тёмный лес',
-      type: 'Локация',
-      description: 'Загадочный лес на окраине королевства. Здесь водятся странные существа и скрыты древние руины.',
-      messageCount: 28,
-    },
-    {
-      id: '3',
-      name: 'Королевский дворец',
-      type: 'Город',
-      description: 'Величественная резиденция короля Альдериха III. Место интриг и политических игр.',
-      messageCount: 15,
-    },
-  ]);
-
-  const [posts, setPosts] = useState([
-    {
-      id: '1',
-      characterName: 'Эльдрих Лунный',
-      characterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eldritch',
-      locationName: 'Таверна "Золотой дракон"',
-      content: 'Входит в таверну, стряхивая снег с плаща. Его посох тихо светится в полумраке. Взгляд скользит по залу в поисках знакомых лиц.\n\n"Хозяин, глинтвейна, пожалуйста. И если не сложно, есть ли свободный стол у камина?"',
-      timestamp: '2 часа назад',
-      likes: 5,
-      comments: 3,
-    },
-    {
-      id: '2',
-      characterName: 'Торн Железный Молот',
-      characterAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thorn',
-      locationName: 'Тёмный лес',
-      content: 'Топор в руках, пробираюсь сквозь густые заросли. Ветки цепляются за броню, но я не обращаю внимания. Где-то здесь должна быть та самая пещера из легенд...\n\n*Осматриваюсь, прислушиваясь к звукам леса*',
-      timestamp: '4 часа назад',
-      likes: 8,
-      comments: 5,
-    },
-  ]);
+  const { toast } = useToast();
+  const [characters, setCharacters] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [createCharacterOpen, setCreateCharacterOpen] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
@@ -83,16 +25,85 @@ export default function Index() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
 
-  const handleCreateCharacter = (character: any) => {
-    setCharacters([...characters, character]);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [charsData, locsData, postsData] = await Promise.all([
+        charactersApi.getAll(),
+        locationsApi.getAll(),
+        postsApi.getAll(),
+      ]);
+      setCharacters(charsData);
+      setLocations(locsData);
+      setPosts(postsData);
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить данные',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCreatePost = (post: any) => {
-    setPosts([post, ...posts]);
+  const handleCreateCharacter = async (character: any) => {
+    try {
+      const newChar = await charactersApi.create(character);
+      setCharacters([...characters, newChar]);
+      toast({
+        title: 'Успех!',
+        description: `Персонаж ${newChar.name} создан`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать персонажа',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleCreateLocation = (location: any) => {
-    setLocations([...locations, location]);
+  const handleCreatePost = async (postData: any) => {
+    try {
+      await postsApi.create({
+        character_id: parseInt(postData.characterId),
+        location_id: parseInt(postData.locationId),
+        content: postData.content,
+      });
+      await loadData();
+      toast({
+        title: 'Успех!',
+        description: 'Пост опубликован',
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать пост',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCreateLocation = async (location: any) => {
+    try {
+      const newLoc = await locationsApi.create(location);
+      setLocations([...locations, { ...newLoc, message_count: 0 }]);
+      toast({
+        title: 'Успех!',
+        description: `Локация ${newLoc.name} создана`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать локацию',
+        variant: 'destructive',
+      });
+    }
   };
 
   const activeLocation = locations.find(l => l.id === activeLocationId);
